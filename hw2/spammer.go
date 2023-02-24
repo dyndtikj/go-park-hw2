@@ -28,7 +28,8 @@ func RunPipeline(cmds ...cmd) {
 }
 
 func SelectUsers(in, out chan interface{}) {
-	set := sync.Map{}
+	set := make(map[string]bool)
+	setMutex := sync.Mutex{}
 	wg := sync.WaitGroup{}
 	for val := range in {
 		email := val.(string)
@@ -36,8 +37,10 @@ func SelectUsers(in, out chan interface{}) {
 		go func() {
 			defer wg.Done()
 			user := GetUser(email)
-			if _, ok := set.Load(user.Email); !ok {
-				set.Store(user.Email, true)
+			setMutex.Lock()
+			defer setMutex.Unlock()
+			if _, ok := set[user.Email]; !ok {
+				set[user.Email] = true
 				out <- user
 			}
 		}()
